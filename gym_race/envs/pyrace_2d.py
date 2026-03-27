@@ -193,7 +193,15 @@ class Car:
 
 
 class PyRace2D:
-    def __init__(self, is_render = True, car = True, mode = 0):
+    def __init__(
+        self,
+        is_render=True,
+        car=True,
+        mode=0,
+        observation_mode="discrete",
+        action_mode="classic",
+        reward_mode="sparse",
+    ):
         # print('PyRace2D - INIT ENVIRONMENT')
         pygame.init()
         self.screen = pygame.display.set_mode((screen_width, screen_height))
@@ -207,11 +215,17 @@ class PyRace2D:
         self.game_speed = 60*0 # as fast as possible...
         self.is_render = is_render
         self.mode = mode # 0: normal, 1:dark, 2: normal (force display)
+        self.observation_mode = observation_mode
+        self.action_mode = action_mode
+        self.reward_mode = reward_mode
 
     def action(self, action):
         if action == 0: self.car.speed += 2
         elif action == 1: self.car.angle += 5
         elif action == 2: self.car.angle -= 5
+        elif action == 3 and self.action_mode == "extended":
+            # Explicit brake action for the Part 2 extended action set.
+            self.car.speed -= 3
 
         self.car.update()
         self.car.check_collision()
@@ -222,7 +236,24 @@ class PyRace2D:
             self.car.check_radar(d)
 
     def evaluate(self):
-        reward = 0
+        reward = 0.0
+        if self.reward_mode == "shaped":
+            # Dense shaping helps exploration: reward progress to next checkpoint.
+            progress_delta = self.car.prev_distance - self.car.cur_distance
+            reward += progress_delta / 20.0
+            # Small time penalty discourages stalling loops.
+            reward -= 0.05
+            if self.car.check_flag:
+                # Checkpoint completion gives strong intermediate guidance.
+                reward += 150.0
+                self.car.check_flag = False
+                self.car.time_spent = 0
+            if not self.car.is_alive:
+                reward -= 300.0
+            elif self.car.goal:
+                reward += 300.0
+            return reward
+
         """
         if self.car.check_flag:
             self.car.check_flag = False
@@ -252,7 +283,11 @@ class PyRace2D:
         ret = [0, 0, 0, 0, 0]
         i = 0
         for r in radars:
-            ret[i] = int(r[1] / 20)
+            if self.observation_mode == "continuous":
+                # Normalize radar distances to [0, 1] instead of bucketed integers.
+                ret[i] = float(r[1]) / 200.0
+            else:
+                ret[i] = int(r[1] / 20)
             i += 1
 
         return ret

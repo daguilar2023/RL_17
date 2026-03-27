@@ -346,6 +346,7 @@ def load_and_play(episode):
 
 def build_parser():
     parser = argparse.ArgumentParser(description="PyRace DQN with Step 2 algorithm upgrades")
+    parser.add_argument("--env-id", default="Pyrace-v3", help="Gymnasium environment id to run")
     parser.add_argument("--mode", choices=["train", "play", "benchmark"], default="benchmark")
     parser.add_argument("--variant", choices=["baseline", "improved"], default="improved")
     parser.add_argument("--episodes", type=int, default=400)
@@ -366,7 +367,7 @@ if __name__ == "__main__":
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    env = gym.make("Pyrace-v1").unwrapped
+    env = gym.make(args.env_id).unwrapped
     os.makedirs(f"models_{VERSION_NAME}", exist_ok=True)
 
     STATE_SIZE = env.observation_space.shape[0]

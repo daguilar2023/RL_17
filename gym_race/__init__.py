@@ -5,3 +5,14 @@ register(
     entry_point='gym_race.envs:RaceEnv',
     max_episode_steps=2_000,
 )
+
+register(
+    id='Pyrace-v3',
+    entry_point='gym_race.envs:RaceEnv',
+    max_episode_steps=2_000,
+    kwargs={
+        "observation_mode": "continuous",
+        "action_mode": "extended",
+        "reward_mode": "shaped",
+    },
+)
